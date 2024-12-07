@@ -64,7 +64,7 @@ public class HostControlView implements CCard {
 				em.echo("Shutdown scheduled for", ldt.format(DateTimeFormatter.ofPattern("HH:mm")));
 			}
 		});
-		em.listen("lock", data -> service.lock());
+		em.listen("lock", _ -> service.lock());
 	}
 
 	private void shutdown() {
@@ -72,7 +72,7 @@ public class HostControlView implements CCard {
 		eventManager.post(new CcEvent("exitimmediately"));
 		eventManager.echoAsync("kthxbye.");
 		eventManager.post(new CcEvent(CcEvent.EVENT_CLOSING));
-		eventManager.listen(CcEvent.EVENT_CLOSING_FINISHED, event -> service.shutdown());
+		eventManager.listen(CcEvent.EVENT_CLOSING_FINISHED, _ -> service.shutdown());
 	}
 
 }
