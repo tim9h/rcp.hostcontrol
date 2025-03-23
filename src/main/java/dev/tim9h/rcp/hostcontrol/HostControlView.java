@@ -50,9 +50,9 @@ public class HostControlView implements CCard {
 				em.showWaitingIndicator();
 				CompletableFuture.supplyAsync(service::cancelShutdown).thenAccept(canceled -> {
 					if (canceled.booleanValue()) {
-						em.echoAsync("Scheduled shutdown canceled");
+						em.echo("Scheduled shutdown canceled");
 					} else {
-						em.echoAsync("No shutdown scheduled");
+						em.echo("No shutdown scheduled");
 					}
 				});
 
@@ -70,7 +70,7 @@ public class HostControlView implements CCard {
 	private void shutdown() {
 		logger.info(() -> "Shutting down workstation");
 		eventManager.post(new CcEvent("exitimmediately"));
-		eventManager.echoAsync("kthxbye.");
+		eventManager.echo("kthxbye.");
 		eventManager.post(new CcEvent(CcEvent.EVENT_CLOSING));
 		eventManager.listen(CcEvent.EVENT_CLOSING_FINISHED, _ -> service.shutdown());
 	}
