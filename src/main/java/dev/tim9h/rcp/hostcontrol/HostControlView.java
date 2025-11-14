@@ -14,6 +14,7 @@ import dev.tim9h.rcp.event.EventManager;
 import dev.tim9h.rcp.hostcontrol.service.HostControlService;
 import dev.tim9h.rcp.logging.InjectLogger;
 import dev.tim9h.rcp.spi.CCard;
+import dev.tim9h.rcp.spi.StringNode;
 import dev.tim9h.rcp.spi.TreeNode;
 
 public class HostControlView implements CCard {
@@ -34,7 +35,7 @@ public class HostControlView implements CCard {
 
 	@Override
 	public Optional<TreeNode<String>> getModelessCommands() {
-		var tree = new TreeNode<>(StringUtils.EMPTY);
+		var tree = new StringNode();
 		tree.add("shutdown").add("cancel");
 		tree.add("lock");
 		return Optional.of(tree);
