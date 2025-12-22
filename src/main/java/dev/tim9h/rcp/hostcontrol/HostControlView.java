@@ -13,11 +13,11 @@ import dev.tim9h.rcp.event.CcEvent;
 import dev.tim9h.rcp.event.EventManager;
 import dev.tim9h.rcp.hostcontrol.service.HostControlService;
 import dev.tim9h.rcp.logging.InjectLogger;
-import dev.tim9h.rcp.spi.CCard;
+import dev.tim9h.rcp.spi.Plugin;
 import dev.tim9h.rcp.spi.StringNode;
 import dev.tim9h.rcp.spi.TreeNode;
 
-public class HostControlView implements CCard {
+public class HostControlView implements Plugin {
 
 	@InjectLogger
 	private Logger logger;
@@ -43,7 +43,7 @@ public class HostControlView implements CCard {
 
 	@Override
 	public void initBus(EventManager em) {
-		CCard.super.initBus(eventManager);
+		Plugin.super.initBus(eventManager);
 
 		em.listen("shutdown", data -> {
 			var time = StringUtils.join(data, StringUtils.SPACE);
