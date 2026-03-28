@@ -32,6 +32,11 @@ public class HostControlView implements Plugin {
 	public String getName() {
 		return "Host Controller";
 	}
+	
+	@Override
+	public String getId() {
+		return "hostcontrol";
+	}
 
 	@Override
 	public Optional<TreeNode<String>> getModelessCommands() {
