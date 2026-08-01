@@ -18,17 +18,19 @@ public class WinHostControlService implements HostControlService {
 	private Logger logger;
 
 	private ScheduledExecutorService scheduler;
+
 	private ScheduledFuture<?> scheduledFuture;
+
 	private volatile LocalDateTime scheduledShutdownTime;
 
 	@Override
 	public void shutdown() {
-//		try {
-//			Runtime.getRuntime().exec(new String[] { "shutdown", "-s", "-t", "0" });
-		logger.debug(() -> "Shutting down now");
-//		} catch (IOException e) {
-//			logger.error(() -> "Unable to shutdown workstation", e);
-//		}
+		try {
+			Runtime.getRuntime().exec(new String[] { "shutdown", "-s", "-t", "0" });
+			logger.debug(() -> "Shutting down now");
+		} catch (IOException e) {
+			logger.error(() -> "Unable to shutdown workstation", e);
+		}
 	}
 
 	@Override

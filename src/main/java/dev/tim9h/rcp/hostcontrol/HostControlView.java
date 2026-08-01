@@ -67,7 +67,7 @@ public class HostControlView implements Plugin {
 					if (ldt == null) {
 						eventManager.echo("No shutdown scheduled");
 					} else {
-						eventManager.echo("Scheduled shutdown: " + TimeUtils.getAbsoluteAndRelativeTimeString(ldt));
+						eventManager.echo("Scheduled shutdown", TimeUtils.getAbsoluteAndRelativeTimeString(ldt));
 					}
 				});
 			} else if (StringUtils.isBlank(time)) {
@@ -78,7 +78,7 @@ public class HostControlView implements Plugin {
 				if (ldt == null) {
 					em.echo("Unable to parse shutdown time. Use examples like '10 min', '1h30', or '23:15'.");
 				} else {
-					em.echo("Shutdown scheduled for ", TimeUtils.getAbsoluteAndRelativeTimeString(ldt));
+					em.echo("Shutdown scheduled", TimeUtils.getAbsoluteAndRelativeTimeString(ldt));
 				}
 			}
 		});
