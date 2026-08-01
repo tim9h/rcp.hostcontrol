@@ -1,6 +1,5 @@
 package dev.tim9h.rcp.hostcontrol;
 
-import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
@@ -12,6 +11,7 @@ import com.google.inject.Inject;
 import dev.tim9h.rcp.event.CcEvent;
 import dev.tim9h.rcp.event.EventManager;
 import dev.tim9h.rcp.hostcontrol.service.HostControlService;
+import dev.tim9h.rcp.hostcontrol.utils.TimeUtils;
 import dev.tim9h.rcp.logging.InjectLogger;
 import dev.tim9h.rcp.spi.Plugin;
 import dev.tim9h.rcp.spi.StringNode;
@@ -32,7 +32,7 @@ public class HostControlView implements Plugin {
 	public String getName() {
 		return "Host Controller";
 	}
-	
+
 	@Override
 	public String getId() {
 		return "hostcontrol";
@@ -41,7 +41,7 @@ public class HostControlView implements Plugin {
 	@Override
 	public Optional<TreeNode<String>> getModelessCommands() {
 		var tree = new StringNode();
-		tree.add("shutdown").add("cancel");
+		tree.add("shutdown").add("cancel", "when");
 		tree.add("lock");
 		return Optional.of(tree);
 	}
@@ -61,13 +61,25 @@ public class HostControlView implements Plugin {
 						em.echo("No shutdown scheduled");
 					}
 				});
-
+			} else if ("when".equals(time)) {
+				em.showWaitingIndicator();
+				CompletableFuture.supplyAsync(service::getScheduledShutdown).thenAccept(ldt -> {
+					if (ldt == null) {
+						eventManager.echo("No shutdown scheduled");
+					} else {
+						eventManager.echo("Scheduled shutdown: " + TimeUtils.getAbsoluteAndRelativeTimeString(ldt));
+					}
+				});
 			} else if (StringUtils.isBlank(time)) {
 				shutdown();
 
 			} else {
 				var ldt = service.shutdown(time, this::shutdown);
-				em.echo("Shutdown scheduled for", ldt.format(DateTimeFormatter.ofPattern("HH:mm")));
+				if (ldt == null) {
+					em.echo("Unable to parse shutdown time. Use examples like '10 min', '1h30', or '23:15'.");
+				} else {
+					em.echo("Shutdown scheduled for ", TimeUtils.getAbsoluteAndRelativeTimeString(ldt));
+				}
 			}
 		});
 		em.listen("lock", _ -> service.lock());

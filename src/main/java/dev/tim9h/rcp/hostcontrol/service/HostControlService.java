@@ -13,6 +13,8 @@ public interface HostControlService {
 
 	public boolean cancelShutdown();
 
+	public LocalDateTime getScheduledShutdown();
+
 	public void lock();
 
 }

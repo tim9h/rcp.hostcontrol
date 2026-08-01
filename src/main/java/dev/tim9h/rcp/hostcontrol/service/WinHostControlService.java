@@ -1,20 +1,15 @@
 package dev.tim9h.rcp.hostcontrol.service;
 
 import java.io.IOException;
-import java.time.Duration;
-import java.time.Instant;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.OffsetDateTime;
-import java.time.format.DateTimeParseException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.logging.log4j.Logger;
-import org.joda.time.format.PeriodFormatterBuilder;
 
+import dev.tim9h.rcp.hostcontrol.utils.TimeUtils;
 import dev.tim9h.rcp.logging.InjectLogger;
 
 public class WinHostControlService implements HostControlService {
@@ -23,15 +18,17 @@ public class WinHostControlService implements HostControlService {
 	private Logger logger;
 
 	private ScheduledExecutorService scheduler;
+	private ScheduledFuture<?> scheduledFuture;
+	private volatile LocalDateTime scheduledShutdownTime;
 
 	@Override
 	public void shutdown() {
-		try {
-			Runtime.getRuntime().exec(new String[] { "shutdown", "-s", "-t", "0" });
-			logger.debug(() -> "Shutting down now");
-		} catch (IOException e) {
-			logger.error(() -> "Unable to shutdown workstation", e);
-		}
+//		try {
+//			Runtime.getRuntime().exec(new String[] { "shutdown", "-s", "-t", "0" });
+		logger.debug(() -> "Shutting down now");
+//		} catch (IOException e) {
+//			logger.error(() -> "Unable to shutdown workstation", e);
+//		}
 	}
 
 	@Override
@@ -39,39 +36,14 @@ public class WinHostControlService implements HostControlService {
 		if (scheduler == null) {
 			scheduler = Executors.newScheduledThreadPool(1);
 		}
-		var seconds = getSecondsByInput(time);
+		var seconds = TimeUtils.getSecondsByInput(time);
 		logger.info(() -> time + " parsed into " + seconds + " seconds");
-		scheduler.schedule(shutdown::run, seconds, TimeUnit.SECONDS);
-		return LocalDateTime.now().plusSeconds(seconds);
-	}
-
-	private static long getSecondsByInput(String time) {
-		//@formatter:off
-		var formatter = new PeriodFormatterBuilder()
-				.appendDays().appendSuffix("d ")
-				.appendHours().appendSuffix("h ")
-				.appendMinutes().appendSuffix("min")
-				.toFormatter();
-		//@formatter:on
-		try {
-			return formatter.parsePeriod(time).toStandardSeconds().getSeconds();
-		} catch (IllegalArgumentException e) {
-			//
+		if (seconds < 0) {
+			return null;
 		}
-		try {
-			var lt = LocalTime.parse(time);
-			Instant instant;
-			if (lt.isBefore(LocalTime.now())) {
-				var ldt = LocalDateTime.of(LocalDate.now().plusDays(1), lt);
-				instant = ldt.toInstant(OffsetDateTime.now().getOffset());
-			} else {
-				var ldt = LocalDateTime.of(LocalDate.now(), lt);
-				instant = ldt.toInstant(OffsetDateTime.now().getOffset());
-			}
-			return Duration.between(Instant.now(), instant).toSeconds();
-		} catch (DateTimeParseException e) {
-			return -1;
-		}
+		scheduledShutdownTime = LocalDateTime.now().plusSeconds(seconds);
+		scheduledFuture = scheduler.schedule(shutdown, seconds, TimeUnit.SECONDS);
+		return scheduledShutdownTime;
 	}
 
 	@Override
@@ -87,22 +59,19 @@ public class WinHostControlService implements HostControlService {
 
 	@Override
 	public boolean cancelShutdown() {
-		if (scheduler == null) {
+		if (scheduler == null || scheduledFuture == null) {
 			return false;
 		}
 		logger.info(() -> "Cancelling shutdown timer");
-		scheduler.shutdown();
-		try {
-			if (!scheduler.awaitTermination(800, TimeUnit.MILLISECONDS)) {
-				scheduler.shutdownNow();
-			}
-		} catch (InterruptedException e) {
-			scheduler.shutdownNow();
-			logger.error(() -> "Unable to cancel shutdown", e);
-			Thread.currentThread().interrupt();
-		}
-		scheduler = null;
-		return true;
+		var cancelled = scheduledFuture.cancel(false);
+		scheduledFuture = null;
+		scheduledShutdownTime = null;
+		return cancelled;
+	}
+
+	@Override
+	public LocalDateTime getScheduledShutdown() {
+		return scheduledShutdownTime;
 	}
 
 }
