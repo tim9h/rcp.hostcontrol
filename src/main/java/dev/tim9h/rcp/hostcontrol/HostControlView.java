@@ -3,7 +3,6 @@ package dev.tim9h.rcp.hostcontrol;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.Logger;
 
 import com.google.inject.Inject;
@@ -13,9 +12,9 @@ import dev.tim9h.rcp.event.EventManager;
 import dev.tim9h.rcp.hostcontrol.service.HostControlService;
 import dev.tim9h.rcp.hostcontrol.utils.TimeUtils;
 import dev.tim9h.rcp.logging.InjectLogger;
+import dev.tim9h.rcp.spi.CommandBuilder;
+import dev.tim9h.rcp.spi.CommandNode;
 import dev.tim9h.rcp.spi.Plugin;
-import dev.tim9h.rcp.spi.StringNode;
-import dev.tim9h.rcp.spi.TreeNode;
 
 public class HostControlView implements Plugin {
 
@@ -39,50 +38,37 @@ public class HostControlView implements Plugin {
 	}
 
 	@Override
-	public Optional<TreeNode<String>> getModelessCommands() {
-		var tree = new StringNode();
-		tree.add("shutdown").add("cancel", "when");
-		tree.add("lock");
-		return Optional.of(tree);
-	}
-
-	@Override
-	public void initBus(EventManager em) {
-		Plugin.super.initBus(eventManager);
-
-		em.listen("shutdown", data -> {
-			var time = StringUtils.join(data, StringUtils.SPACE);
-			if ("cancel".equals(time)) {
-				em.showWaitingIndicator();
-				CompletableFuture.supplyAsync(service::cancelShutdown).thenAccept(canceled -> {
-					if (canceled.booleanValue()) {
-						em.echo("Scheduled shutdown canceled");
-					} else {
-						em.echo("No shutdown scheduled");
-					}
-				});
-			} else if ("when".equals(time)) {
-				em.showWaitingIndicator();
-				CompletableFuture.supplyAsync(service::getScheduledShutdown).thenAccept(ldt -> {
-					if (ldt == null) {
-						eventManager.echo("No shutdown scheduled");
-					} else {
-						eventManager.echo("Scheduled shutdown", TimeUtils.getAbsoluteAndRelativeTimeString(ldt));
-					}
-				});
-			} else if (StringUtils.isBlank(time)) {
-				shutdown();
-
+	public Optional<CommandNode> getCommands() {
+		return new CommandBuilder().command("shutdown", true, _ -> {
+			shutdown();
+		}).argumentAction(time -> {
+			var ldt = service.shutdown(time, this::shutdown);
+			if (ldt == null) {
+				eventManager.echo("Unable to parse shutdown time. Use examples like '10 min', '1h30', or '23:15'.");
 			} else {
-				var ldt = service.shutdown(time, this::shutdown);
-				if (ldt == null) {
-					em.echo("Unable to parse shutdown time. Use examples like '10 min', '1h30', or '23:15'.");
-				} else {
-					em.echo("Shutdown scheduled", TimeUtils.getAbsoluteAndRelativeTimeString(ldt));
-				}
+				eventManager.echo("Shutdown scheduled", TimeUtils.getAbsoluteAndRelativeTimeString(ldt));
 			}
-		});
-		em.listen("lock", _ -> service.lock());
+		}).child("cancel", _ -> {
+			eventManager.showWaitingIndicator();
+			CompletableFuture.supplyAsync(service::cancelShutdown).thenAccept(canceled -> {
+				if (canceled.booleanValue()) {
+					eventManager.echo("Scheduled shutdown canceled");
+				} else {
+					eventManager.echo("No shutdown scheduled");
+				}
+			});
+		}).up().child("when", _ -> {
+			eventManager.showWaitingIndicator();
+			CompletableFuture.supplyAsync(service::getScheduledShutdown).thenAccept(ldt -> {
+				if (ldt == null) {
+					eventManager.echo("No shutdown scheduled");
+				} else {
+					eventManager.echo("Scheduled shutdown", TimeUtils.getAbsoluteAndRelativeTimeString(ldt));
+				}
+			});
+		}).up().command("lock", _ -> {
+			service.lock();
+		}).build();
 	}
 
 	private void shutdown() {
