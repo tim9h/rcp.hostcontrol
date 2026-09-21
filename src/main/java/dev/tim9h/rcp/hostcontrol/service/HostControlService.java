@@ -7,14 +7,14 @@ import com.google.inject.ImplementedBy;
 @ImplementedBy(WinHostControlService.class)
 public interface HostControlService {
 
-	public void shutdown();
+	void shutdownHost();
 
-	public LocalDateTime shutdown(String time, Runnable shutdown);
+	LocalDateTime shutdownHost(String time);
 
-	public boolean cancelShutdown();
+	boolean cancelShutdown();
 
-	public LocalDateTime getScheduledShutdown();
+	LocalDateTime getScheduledShutdown();
 
-	public void lock();
+	void lock();
 
 }
