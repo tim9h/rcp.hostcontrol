@@ -1,5 +1,6 @@
 module rcp.hostcontrol {
 	exports dev.tim9h.rcp.hostcontrol;
+	exports dev.tim9h.rcp.hostcontrol.service;
 
 	requires transitive rcp.api;
 	requires com.google.guice;

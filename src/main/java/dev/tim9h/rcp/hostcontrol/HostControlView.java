@@ -1,7 +1,6 @@
 package dev.tim9h.rcp.hostcontrol;
 
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 
 import org.apache.logging.log4j.Logger;
 
@@ -39,44 +38,48 @@ public class HostControlView implements Plugin {
 
 	@Override
 	public Optional<CommandNode> getCommands() {
-		return new CommandBuilder().command("shutdown", true, _ -> {
-			shutdown();
-		}).argumentAction(time -> {
-			var ldt = service.shutdown(time, this::shutdown);
-			if (ldt == null) {
-				eventManager.echo("Unable to parse shutdown time. Use examples like '10 min', '1h30', or '23:15'.");
-			} else {
-				eventManager.echo("Shutdown scheduled", TimeUtils.getAbsoluteAndRelativeTimeString(ldt));
-			}
-		}).child("cancel", _ -> {
-			eventManager.showWaitingIndicator();
-			CompletableFuture.supplyAsync(service::cancelShutdown).thenAccept(canceled -> {
-				if (canceled.booleanValue()) {
-					eventManager.echo("Scheduled shutdown canceled");
-				} else {
-					eventManager.echo("No shutdown scheduled");
-				}
-			});
-		}).up().child("when", _ -> {
-			eventManager.showWaitingIndicator();
-			CompletableFuture.supplyAsync(service::getScheduledShutdown).thenAccept(ldt -> {
-				if (ldt == null) {
-					eventManager.echo("No shutdown scheduled");
-				} else {
-					eventManager.echo("Scheduled shutdown", TimeUtils.getAbsoluteAndRelativeTimeString(ldt));
-				}
-			});
-		}).up().command("lock", _ -> {
-			service.lock();
-		}).build();
+		//@formatter:off
+		return new CommandBuilder()
+			.command("shutdown", true, _ -> shutdownPluginsAndHost())
+				.argumentAction(time -> {
+					var shutdownTime = service.shutdownHost(time);
+					if (shutdownTime == null) {
+						eventManager.echo("Unable to parse shutdown time. " + "Use examples like '10 min', '1h30', or '23:15'.");
+					} else {
+						eventManager.echo("Shutdown scheduled", TimeUtils.getAbsoluteAndRelativeTimeString(shutdownTime));
+					}
+				})
+				.child("cancel", _ -> cancelShutdown()).up()
+				.child("when", _ -> showScheduledShutdown()).up()
+			.command("lock", _ -> service.lock())
+			.build();
+		//@formatter:on
 	}
 
-	private void shutdown() {
-		logger.info(() -> "Shutting down workstation");
-		eventManager.post(new CcEvent("exitimmediately"));
-		eventManager.echo("kthxbye.");
-		eventManager.post(new CcEvent(CcEvent.EVENT_CLOSING));
-		eventManager.listen(CcEvent.EVENT_CLOSING_FINISHED, _ -> service.shutdown());
+	private void cancelShutdown() {
+		if (service.cancelShutdown()) {
+			eventManager.echo("Scheduled shutdown canceled");
+		} else {
+			eventManager.echo("No shutdown scheduled");
+		}
+	}
+
+	private void showScheduledShutdown() {
+		var shutdownTime = service.getScheduledShutdown();
+
+		if (shutdownTime == null) {
+			eventManager.echo("No shutdown scheduled");
+		} else {
+			eventManager.echo("Scheduled shutdown", TimeUtils.getAbsoluteAndRelativeTimeString(shutdownTime));
+		}
+	}
+
+	private void shutdownPluginsAndHost() {
+		eventManager.listen(CcEvent.EVENT_CLOSING_FINISHED, _ -> {
+			eventManager.unsubscribe(CcEvent.EVENT_CLOSING_FINISHED);
+			service.shutdownHost();
+		});
+		eventManager.post("exit", "cleanup");
 	}
 
 }
