@@ -41,29 +41,18 @@ public class TimeUtils {
 				return TimeUnit.MINUTES.toSeconds(value);
 			}
 			switch (unit) {
-			case "s":
-			case "sec":
-			case "secs":
-			case "second":
-			case "seconds":
+			case "s", "sec", "secs", "second", "seconds":
 				return value;
-			case "m":
-			case "min":
-			case "mins":
-			case "minute":
-			case "minutes":
+			case "m", "min", "mins", "minute", "minutes":
 				return TimeUnit.MINUTES.toSeconds(value);
-			case "h":
-			case "hr":
-			case "hrs":
-			case "hour":
-			case "hours":
+			case "h", "hr", "hrs", "hour", "hours":
 				return TimeUnit.HOURS.toSeconds(value);
-			case "d":
-			case "day":
-			case "days":
+			case "d", "day", "days":
 				return TimeUnit.DAYS.toSeconds(value);
+			default:
+				return TimeUnit.MINUTES.toSeconds(1);
 			}
+
 		}
 
 		// Try patterns with hours and minutes like "1h30", "1h 30m", "1:30"
@@ -75,14 +64,14 @@ public class TimeUtils {
 					var h = Integer.parseInt(parts[0].trim());
 					var mm = Integer.parseInt(parts[1].trim());
 					var lt = LocalTime.of(h, mm);
-					var targetZdt = ZonedDateTime.of(LocalDate.now(), lt, ZoneId.systemDefault());
-					if (targetZdt.isBefore(ZonedDateTime.now())) {
+					var targetZdt = ZonedDateTime.of(LocalDate.now(ZoneId.systemDefault()), lt, ZoneId.systemDefault());
+					if (targetZdt.isBefore(ZonedDateTime.now(ZoneId.systemDefault()))) {
 						targetZdt = targetZdt.plusDays(1);
 					}
 					return Duration.between(Instant.now(), targetZdt.toInstant()).getSeconds();
 				}
 			}
-		} catch (Exception e) {
+		} catch (Exception _) {
 			// fall through to other parsers
 		}
 
@@ -97,7 +86,7 @@ public class TimeUtils {
 		//@formatter:on
 		try {
 			return formatter.parsePeriod(input).toStandardSeconds().getSeconds();
-		} catch (IllegalArgumentException e) {
+		} catch (IllegalArgumentException _) {
 			// ignore and continue
 		}
 
@@ -105,12 +94,12 @@ public class TimeUtils {
 		// last resort
 		try {
 			var lt = LocalTime.parse(input);
-			var targetZdt = ZonedDateTime.of(LocalDate.now(), lt, ZoneId.systemDefault());
-			if (targetZdt.isBefore(ZonedDateTime.now())) {
+			var targetZdt = ZonedDateTime.of(LocalDate.now(ZoneId.systemDefault()), lt, ZoneId.systemDefault());
+			if (targetZdt.isBefore(ZonedDateTime.now(ZoneId.systemDefault()))) {
 				targetZdt = targetZdt.plusDays(1);
 			}
 			return Duration.between(Instant.now(), targetZdt.toInstant()).getSeconds();
-		} catch (DateTimeParseException e) {
+		} catch (DateTimeParseException _) {
 			return -1;
 		}
 	}
@@ -118,7 +107,7 @@ public class TimeUtils {
 	public static String getAbsoluteAndRelativeTimeString(LocalDateTime ldt) {
 		var absFmt = DateTimeFormatter.ofPattern("HH:mm");
 		var absolute = ldt.format(absFmt);
-		var now = java.time.LocalDateTime.now();
+		var now = java.time.LocalDateTime.now(ZoneId.systemDefault());
 		var dur = java.time.Duration.between(now, ldt);
 		String relative;
 		if (dur.isZero() || dur.isNegative()) {
