@@ -6,7 +6,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.inject.Inject;
 
-import dev.tim9h.rcp.event.CcEvent;
+import dev.tim9h.rcp.event.Event;
 import dev.tim9h.rcp.event.EventManager;
 import dev.tim9h.rcp.hostcontrol.service.HostControlService;
 import dev.tim9h.rcp.hostcontrol.utils.TimeUtils;
@@ -75,8 +75,8 @@ public class HostControlView implements Plugin {
 	}
 
 	private void shutdownPluginsAndHost() {
-		eventManager.listen(CcEvent.EVENT_CLOSING_FINISHED, _ -> {
-			eventManager.unsubscribe(CcEvent.EVENT_CLOSING_FINISHED);
+		eventManager.listen(Event.EVENT_CLOSING_FINISHED, _ -> {
+			eventManager.unsubscribe(Event.EVENT_CLOSING_FINISHED);
 			service.shutdownHost();
 		});
 		eventManager.post("exit", "cleanup");
